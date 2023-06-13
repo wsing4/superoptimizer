@@ -2,6 +2,7 @@ from itertools import product
 from cpu import CPU
 import assembler
 
+
 # Helper function that finds the optimal code given the assembly code.
 def optimal_from_code(assembly, max_length, max_mem, max_val, debug=False):
     cpu = CPU(max_mem)
@@ -22,11 +23,13 @@ def optimal_from_state(state, max_length, max_val, debug=False):
 class Superoptimizer:
     def __init__(self):
         self.program_cache = {}
+        self.viable_cache = {}
 
     # Generates all possible programs.
     def generate_programs(self, cpu, max_length, max_mem, max_val):
         for length in range(1, max_length + 1):
             for prog in product(cpu.ops.values(), repeat=length):
+                # List of args for ops
                 arg_sets = []
                 for op in prog:
                     if op == cpu.load:
@@ -42,11 +45,15 @@ class Superoptimizer:
     # Tests all of the generated programs and returns the shortest.
     def search(self, max_length, max_mem, max_val, target_state, debug=False):
         count = 0
+        viable_count = 0            #DEBUG
         cpu = CPU(max_mem)
+
         for program in self.generate_programs(cpu, max_length, max_mem, max_val):
             state = cpu.execute(program)
             if state == target_state:
-                state = tuple(state) 
+                state = tuple(state)
+                viable_count += 1                                   #DEBUG
+                self.viable_cache[viable_count] = program           #DEBUG
                 if state not in self.program_cache or len(program) < len(self.program_cache[state]):
                     self.program_cache[state] = program
             
@@ -58,4 +65,8 @@ class Superoptimizer:
                     solution = self.program_cache.get(tuple(target_state), None)
                     print(f"Best solution: {solution}")
 
+        # Debugging
+        if debug:
+            print(f"\n***Debug Stats***\n{viable_count} of {count} generated programs are viable.\n")
+        
         return self.program_cache.get(tuple(target_state), None)
